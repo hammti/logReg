@@ -1,0 +1,108 @@
+% Encoding: UTF-8
+
+@Article{Han2008,
+  author        = {Han, L. and Xu, S.},
+  title         = {A Fisher scoring algorithm for the weighted regression method of QTL mapping},
+  journal       = {Heredity},
+  year          = {2008},
+  volume        = {101},
+  pages         = {453},
+  month         = aug,
+  __markedentry = {[hammt:6]},
+  publisher     = {The Genetics Society},
+  url           = {https://doi.org/10.1038/hdy.2008.78},
+}
+
+@Book{Agresti1990,
+  title     = {Categorical data analysis},
+  publisher = {Wiley},
+  year      = {1990},
+  author    = {Agresti, Alan},
+  series    = {A Wiley-Interscience publication},
+  address   = {New York},
+  keywords  = {Analyse Multivariate statistic},
+  language  = {eng},
+  library   = {UB [Signatur: 92 H 1278]},
+  pages     = {XV, 558 S.},
+}
+
+@Book{Davidson2004,
+  title     = {Econometric Theory and Methods},
+  publisher = {Oxford University Press},
+  year      = {2004},
+  author    = {Davidson, Russel and James G. MacKinnon},
+}
+
+@Article{Coxe2013,
+  author  = {Coxe, Stefany and Stephen G. West and Leona S. Aiken},
+  title   = {Generalized Linear Models},
+  journal = {The Oxford Handbook of Quantitative Methods in Psychology},
+  year    = {2013},
+  volume  = {2},
+}
+
+@Book{Long1997,
+  title     = {Regression Models for Categorical and Limited Dependent Variables},
+  publisher = {LSAGE Publications Ltd.},
+  year      = {1997},
+  author    = {Long, J. Scott},
+}
+
+@Book{Greene2003,
+  title     = {Econometric Analysis},
+  publisher = {New Jersey; Pearson Education, Inc.},
+  year      = {2003},
+  author    = {Greene, William H.},
+}
+
+@Book{Bierens2004,
+  title     = {Introduction to the Mathematical and Statistical Foundations of Econometrics},
+  publisher = {Cambridge: Cambridge University Press},
+  year      = {2004},
+  author    = {Bierens, Herman J.},
+}
+
+@Article{Schworer2004,
+  author = {Schworer, Andrew and Peter Hovey},
+  title  = {Newton-Raphson Versus Fisher Scoring Algorithms in Calculating Maximum Likelihood Estimates},
+  year   = {2004},
+}
+
+@Article{Lange2014,
+  author  = {Lange, Kenneth and Eric C. Chi and Hua Zhou},
+  title   = {A Brief Survey of Modern Optimization for Statisticians},
+  journal = {International Statistical Review},
+  year    = {2014},
+  volume  = {82},
+  number  = {1},
+  pages   = {46-70},
+}
+
+@InBook{Hastie1992,
+  chapter   = {Generalized linear models},
+  title     = {Statistical Models},
+  publisher = {USA: Wadsworth \& Brooks/Cole},
+  year      = {1992},
+  author    = {Hastie, T. J. and Pregibon, D.},
+  editor    = {S, J. M. Chambers and T. J. Hastie},
+}
+
+@Manual{Rcore2013,
+  title        = {R: A Language and Environment for Statistical Computing},
+  author       = {{R Core Team}},
+  organization = {R Foundation for Statistical Computing},
+  address      = {Vienna, Austria},
+  year         = {2013},
+  note         = {{ISBN} 3-900051-07-0},
+  url          = {http://www.R-project.org/},
+}
+
+@Manual{Xie2019,
+  title  = {knitr: A General-Purpose Package for Dynamic Report Generation in R},
+  author = {Yihui Xie},
+  year   = {2019},
+  note   = {R package version 1.22},
+  url    = {https://yihui.name/knitr/ (last acc},
+}
+
+@Comment{jabref-meta: databaseType:bibtex;}

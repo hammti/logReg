@@ -1,0 +1,13 @@
+Package: logReg
+Title: Alternative Implementation of Logistic Regression in R
+Version: 0.1
+Authors@R: person("Timm", "Hamm", email = "timm.hamm@outlook.de", role = c("aut", "cre"))
+Description: The package is build for the implementation of logistic regression with a binary dependent variable.
+Depends: R (>= 3.4.2)
+License: GPL-2
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.1
+Suggests: knitr, rmarkdown
+VignetteBuilder: knitr
+Imports: graphics, stats

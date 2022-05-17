@@ -1,0 +1,667 @@
+---
+title: "An Alternative Implementation of Logistic Regression in R"
+author: "Timm Hamm"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+bibliography: bibliography.bib
+fontsize: 12pt
+header-includes:
+     - \usepackage{amsmath}
+vignette: >
+  %\VignetteIndexEntry{An Alternative Implementation of Logistic Regression in R}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+#knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+\begin{center} 
+$\textbf{Abstract}$
+\end{center}
+
+> The logistic regression model belongs to the standard repertoire of 
+categorical data analysis. Models that fall into the category
+of logistic regression are characterized by a binary dependent variable and 
+have broad applications in various fields ranging from political science to 
+epidemiology. Accordingly, there are multiple software solutions available 
+to fit binary data. In  `R` there is the `glm()` function, which is part of
+the `stats` package, that can be used to fit generalized linear models.
+In this paper, I present an alternative implementation of logistic regression
+in `R`, which is introduced in the `logReg` package. Prior to the 
+introduction of the functionality of `logReg`, I discuss the stastical
+theory behind the package, namely logistic regression and maximum likelihood
+estimation.
+
+
+
+> **Keywords**: Logistic Regression, Maximum Likelihood Estimation, 
+Fisher Scoring Algorithm, LogReg, `R`
+
+
+\pagebreak
+
+## 1. Introduction
+
+Binary choice problems can be found in various disciplines. A political 
+scientist might ask whether a government of an authoritarian state will be 
+toppled or remains in power, whereas an epidemiologist might be interested
+whether a disease breaks out or not. The calculation of probabilities attached
+to such binary problems, the probabilites of "succes" or "failure", 
+are essential for making well-grounded decisions in different contexts.
+The modelling of stochastical processes that lay behind the manifestation of 
+success or failure can be done by binary classification models, among which
+the logistic regression model is one of the most popular [@Agresti1990]. 
+In the following,
+I introduce an alternative implementation of logistic regression in `R`, which
+is available in the `logReg` package. 
+
+In the first chapter, I briefly address the statistical theory behind
+logistic regression, maximum likelihood estimation and the Fisher scoring
+algorithm, which is used for optimizing the model parameters. Afterwards, I 
+present the software implementation of logistic regression in `R` and discuss 
+the steps towards logistic model estimation with the `logReg` package. Finally,
+I show how to use the core function of the `logReg` package, `logMod()`, with 
+an example data set.
+
+
+
+## 2. The Stastical Theory of Logistic Regression 
+
+The `logReg` package enables the user to fit a binary response model with the 
+help of logistic regression. The logistic regression model belongs to the 
+family of generalized linear models [@Coxe2013]. In general, binary choice 
+models are 
+used to compute the probability $P_t$, where $t$ is an observation, of a binary dependent variable $y_t$, which can take values of either 0 or 1. The 
+probability of $y_t$ being 1, which can be interpreted as "success", conditional 
+on the information set $\Omega_t$ is denoted as [@Davidson2004, pp. 444]:
+
+$$P_t = Pr(y_t = 1|\Omega_t) = E(y_t|\Omega_t)$$
+
+Among the defining proberties of binary choice model is that values of $E(y_t|\Omega_t)$ lay all between 0 and 1, as this expectation represents a probability. 
+If one would estimate $E(y_t|\Omega_t)$ with Ordinary Least Squares (OLS),
+one could not guarantee that all fitted values lay in the interval $[0, 1]$
+[@Long1997, pp. 35]. 
+Hence, the model $X_t\beta$ is transformed with the help of $F(X_t\beta)$, 
+so that the fitted values for $E(y_t|\Omega_t)$ are between 0 an 1. 
+The function $F(X)$ has the proberties of a cumulative distribution function 
+(CDF) [@Davidson2004]. As $F(X)$ shares the proberties of a CDF, it is a
+non-linear function, 
+which makes numerical procedures in the estimation process necessary 
+[@Greene2003, pp. 492].
+
+## 2.1 The Logistic Regression
+
+There are two popular choices for the transformation function $F(X)$, which are 
+either the cumulative standard normal distribution function or the logistic 
+function. The `logReg` package uses logistic regression to address
+binary choice problems and hence, transforms the model $X_t\beta$ with the 
+logistic function. The logistic function for $y_t$ being
+1 is defined as [@Davidson2004, p. 446]:
+
+$$\Lambda(x) = \frac{exp(x)} {1 + exp(x)}$$
+
+Based on this formula the logit model can be stated as ratio of the two 
+complementary probabilities for succes and failure [@Davidson2004, p. 446]:
+
+$$log(\frac{P_t} {1 - P_t}) = X_t\beta$$
+
+, where the left side of the equation, the probability ratio, can be defined
+as the logarithm of the odds, which can be interpreted as chances of success
+relative to failure, while $X_t\beta$
+represents the model to be fitted. If we solve for $P_t$, we get 
+[@Davidson2004, p. 446]:
+
+$$P_t = \frac{exp(X_t\beta)} {1 + exp(X_t\beta)} = \Lambda(X_t\beta)$$
+
+By estimating $P_t$ with the logistic function $\Lambda(X_t\beta)$, we 
+receive predicted values between 0 and 1 for our model of interest. The 
+estimation of the $\beta$ coefficient vector of the model is done with maximum likelihood estimation. 
+
+
+## 2.2 Maximum Likelihood Estimation
+
+The stochastical process that leads to the realization of $y_t$ can be 
+described with a binomial distribution. The probability mass function of the 
+binomial distribution is the fundament of the maximum likelihood estimation
+for the logistic regression. The probability mass function tells the probability
+of getting exactly $k$ successes, $y_t$ equalling 1, in $n$ trials
+[@Bierens2004, p.16]:
+
+$$f(k,n,P_t) = {n\choose k} P_t^k (1 - P_t)^{n - k}$$
+
+, where $P_t$ denotes the probability of receiving $y_t = 1$ for an obervation 
+$t$. Based on the probability mass function for a binomial 
+distribution the likelihood function can be derived. Out of computational 
+reasons the logarithm is taken of the likelihood function, which results in
+the following [@Davidson2004, p. 447]:
+
+$$l(\beta; y) = \sum_{t = 1}^{n}(y_t log F(X_t\beta) + (1 - y_t) log(1 - F(X_t\beta)))$$
+
+It should be noted that the likelihood function $l(\beta; y)$ 
+ for the values of $y_t$ given their discrete nature should
+be perceived as the probability that a value
+is realized and not as a probability density at that value 
+[@Davidson2004: p. 447]. To estimate $y_t$ perfectly $F(X_t\beta)$ has to
+be 1, if $y_t$ is 1. 
+
+As the log-likelihood function for the logit model is globally concave, a unique
+maximum $\hat{\beta}$ should be found with the help of the first order 
+conditions. The first derivative of the log-likelihood function is described by
+the score function [Agresti1990]:
+
+$$s(\beta) = \sum_{t = 1}^{n}(y_t - p_t)x_t^T$$
+
+To guarantee that the solution found for $\beta$ is actually
+a maximum, the Hessian matrix, the second derivative of log-likelihood function,
+hat to be negative definite. The Fisher information matrix, which can be defined 
+as the negative expectation of the Hessian, is expressed the 
+following [@Agresti1990]:
+
+$$I(\beta) = X^T W X$$
+
+The Fisher information matrix is positive definite in the case of 
+$\hat{\beta_t}$ being the maximum likelihood estimator. Based on the score 
+vector, $s(\beta)$, and the Fisher information matrix 
+, $I(\beta)$, the Fisher scoring algorithm is developed.
+
+## 2.3 The Fisher Scoring Algorithm
+
+The Fisher scoring algorithm (FSA) is an optimization procedure that can be 
+used to find the maximum likelihood estimator $\hat{\beta}$ in a logistic 
+regression context. The `logReg` package makes use of the Fisher scoring 
+algorithm to 
+find the optimal solution for the coefficients of interest. Next to the FSA the
+Newton-Rhapson method, which implements Taylor approximization to find the 
+maximum of the likelihood function, is often applied to solve a non-linear 
+estimation problem in regression analysis [@Agresti1990]. To have an overview 
+over the advantages and disadvantages of both procedures see @Schworer2004.
+
+The FSA is a so called hillclimbing algorithm, as it solves a maximization 
+problem. FSA applies an
+iterative procedure to find $\hat{\beta}$, as there in no analytical solution 
+given the non-linearity of $F(X_b\beta)$. In practice, the algorithm has this
+form [@Lange2014]:
+
+$$\beta_{n + 1} = \beta_n + \gamma I^{-1}(\beta_n) * s(\beta_n)$$
+
+, where $n$ is an index counting the iterations, $\gamma$ the step length of
+the algorithm, $I^{-1}(\beta_n)$ is the 
+Fisher information matrix and $s(\beta_n)$ is the score vector. The algorithm 
+starts with an initial guess, $\beta_0$, and 
+iteratates the equation until a certain criterion is reached: 
+$\beta_{n + 1} \approx \beta_n$ [@Han2008]. 
+
+
+
+
+## 3. Logistic Regression in R: The logReg package
+
+### 3.1 Obtaining the Software
+
+The `logReg` package is an add-on to the stastical software `R`. To run the 
+package smoothly the following packages should be loaded additionally: 
+`knitr` and `rmarkdown` [@Xie2019]. In  `R` the package can be loaded with:
+
+```{r, echo = TRUE, eval = FALSE}
+library(logReg)
+```
+
+### 3.2 The Functionality of logReg
+
+The presentation of the functionality of `logReg` is subdivided in three parts.
+In the first subsection the setup, of which the Fisher scoring
+algorithm makes use, is shown. Afterwards, the implementation of the Fisher 
+scoring algorithm as such is explained and the corresponding `fishScore()` 
+function is presented. Finally, the `logMod()` function, with which logistic
+regression can be perfomed, is introduced.
+
+### 3.2.1 The Setup for Maximum Likelihood Estimation
+
+To guarantee that any real valued input from the model $X_t\beta$ is mapped to
+the interval $[0, 1]$ the `sigm()` function and the corresponding probability
+calculating function `p()` are written. The `sigm()` function is the logistic
+function, which is also known as sigmoid function.
+```{r, echo = TRUE}
+# 1. The sigmoid function:
+sigm <- function(x) {
+  
+  s <- (exp(x) / (1 + exp(x)))
+  return(s)
+}
+
+# 2. The probability (predicted outcome) calculator function p():
+p <- function(x, beta) {
+  
+  p <- sigm(x %*% beta)
+  return(p)
+}
+```
+
+Based on this setup the log-likelihood can be computed by the `logLike()` 
+function. The log-likelihood is calculated within the `fishScore()` function and
+can be obtained from the resulting list after `fishScore()` was run.
+The argumentes of the function are the design matrix `x`, the dependent variable 
+`y` and a coefficient vector `beta`.
+
+```{r, echo = TRUE}
+# 3. The logLike() function:
+logLike <- function(x, y, beta, ...) {
+
+  l <- sum(y * log(p(x, beta)) + (1 - y) * log(1 - p(x, beta)))
+  return(l)
+}
+
+```
+
+
+The `score()` function is an essential part of the Fisher scoring algorithm. The
+argumentes of the function are the design matrix, `x`, the dependent variable, 
+`y`, and a coefficient vector, `beta`. The score() is computed within three 
+steps. In the first step the error is computed,
+which is the difference between the realized values of $y_t$ and the computed
+probability of $E(y_t|\Omega_t) = 1$ for each observation $t$. In a second step 
+the error
+is multiplied with corresponding values from the design matrix `x` for each 
+observation using a for loop. Finally, in a third step the results of the 
+second step are summed up for each column of the design matrix with a for loop.
+The three steps result in the score vector.
+
+
+```{r, echo = TRUE}
+# The score() function:
+score <- function(x, y, beta, ...) {
+
+# 1.
+  # Deviation between true value y and the observed probality computed by p()
+  error <- y - p(x, beta)
+  error <- as.matrix(error)
+
+# 2.
+  # Define empty storage matrix for row by row multiplication
+  rowProduct <- matrix(nrow = nrow(x), ncol = ncol(x))
+
+  # Calculate product of each row with a for loop
+  for(i in 1:nrow(x)) {
+    rowProduct[i, ] <- error[i] * x[i, ]
+  }
+
+# 3. 
+  # Define empty storage vector for the subsequent summation of the columns
+  # of the matrix produced by the previous for loop
+  colAddition <- c()
+
+  # Sum columns of matrix by for loop to get the beta coefficients
+  for(i in 1:ncol(rowProduct)) {
+    colAddition[i] <- sum(rowProduct[, i])
+  }
+
+  return(colAddition)
+}
+```
+
+Another essential part of the Fisher scoring algorithm is the Fisher information
+matrix, which is computed with the `fisher()` function.
+The arguments of the function are the design matrix `x` and the probability, `p`
+, of obtaining $E(y_t|\Omega_t) = 1$. The probabilites `p` are used to calculate
+the weighting matrix $W$, which is included in the considered definition of the 
+Fisher information matrix.
+
+
+```{r, echo = TRUE}
+# The fisher() function:
+fisher <- function(x, p, ...) {
+
+  # Calculation of weighting matrix
+  vecProd <- as.vector(p * (1 - p))
+  vecProd <- diag(vecProd)
+
+  # Fisher Matrix
+  f <- t(x) %*% vecProd %*% x
+  return(f)
+}
+
+```
+
+Based on this setup, especially with help of `p()`, `score()` and `fisher()`, 
+the Fisher scoring algorithm is defined.
+
+
+### 3.2.2 The Fisher Scoring Algorithm and the fishScore() function
+
+The optimal solutions for the $\beta$ vector are obtained with the `fishScore()`
+function, which implements the Fisher scoring algorithm. The arguments of the
+function are the design matrix `x`, the dependent variable `y`, `maxIter` 
+representing the maximum numbers of iterations and `precision`, which is the 
+default accuracy of the algorithm. The default values of `maxIter` and 
+`precision` are received from @Hastie1992.
+
+```{r, echo = TRUE, eval = FALSE}
+# The fishScore() function:
+fishScore <- function(x, y, maxIter = 25, precision = 1e-8) {
+  ...
+  
+```
+
+The initialization of the algorithm is done
+by the definition of certain objects:
+
+* `beta`: a zero vector which is the initial guess of the algorithm for the 
+          coefficient vector,
+* `rate`: an object of class "numeric", which is the learining rate (or step 
+        length) of the algorithm,
+* `convergence`: a Boolean object with a default value of `FALSE`,
+* `i`: an object saving the total number of iterations accomplished after each
+     iteration (initially zero),
+* `pi`: an expression for the predicted probability of success,
+* `deltaBeta`: an object keeping track of the difference between $\beta_{n + 1}$
+     and $\beta_{n}$ (initially one).
+     
+```{r, echo = TRUE, eval = FALSE}
+  # The intial guess:
+  beta <- rep(0, ncol(x))
+
+  # The learning rate: 
+  rate <- 1
+
+  # A condition for the while loop:
+  convergence <- FALSE
+
+  # Iteration counter:
+  i <- 0
+
+  # The probability p
+  pi <- sigm(x %*% beta)
+
+  # A delta tracker:
+  deltaBeta <- 1
+```
+     
+
+Based on this initialization a while loop is implemented, which iterates the 
+equation of the Fisher scoring algorithm until 
+`convergence` turns `TRUE` and/or the maximum number of iterations defined in 
+`maxIter` are reached. The object `convergence` turns `TRUE`, if the difference
+between $\beta_{n + 1}$ and $\beta_{n}$ becomes negligibly small, i.e. less than
+`1e-8`. In this case, a list of stastics is returned, among them the 
+maximum likelihood estimators of $\beta$. A part of these returned statistics
+is used in later computations.
+If `convergence` remains `FALSE` after the maximum number of iterations
+are reached, an error message is issued. 
+
+
+```{r, echo = TRUE, eval = FALSE}
+  # The while loop:
+  while(convergence == FALSE && i <= maxIter) {
+
+    # Update iteration count
+    i <- i + 1
+    iterations <- i
+
+    # The function to be optimized by the algorithm so that the log-likelihood
+    # function is maximized
+    betaNew <- beta + rate * solve(fisher(x, pi)) %*% score(x, y, beta)
+
+    # Calculate the new probability
+    piNew <- sigm(x %*% betaNew)
+
+    # Store the absolute change in beta
+    deltaBeta <- abs(betaNew - beta)
+
+    # Update beta and pi
+    beta <- betaNew
+    pi <- piNew
+
+    # Calcuate fitted values for the model (notice: this is not the output of
+    # the response function. Accordingly, the values are not necessarilty
+    # between 0 and 1)
+    fittedValues <- x %*% beta
+
+    # Compute the maximum of the log-Likelhood
+    logLikelihood <- logLike(x, y, beta)
+
+    # Update Matrix W (compare fisher())
+    W <- diag(pi * (1 - pi))
+
+    # Check convergence of beta and break loop if convergence is realized
+    if (sum(deltaBeta) < precision) {
+      convergence <- TRUE
+      break
+    }
+
+  }
+
+  # Return beta coefficients that result from optimization procedure in a list
+  return(list(
+    coefficients = beta,
+    fittedValues = fittedValues,
+    LogLikelihood = logLikelihood,
+    pi = pi,
+    W = W,
+    Iterations = iterations))
+
+  # Error message in case of non-convergence
+  if(convergence == FALSE) {
+    stop(paste(i, "No convergence was reached after iterations.
+               Increase maxIter?"))
+  }
+
+}
+
+```
+
+The `fishScore()` function can be excectued separatly in the `logReg` package.
+
+
+### 3.2.3 The logMod() function
+
+The function `logMod()` is the core function of the `logReg` package. The 
+model equation of logistic regression can be inserted via the `formula`
+argument, and the data, on which the model estimation is based on, is specified
+in the `data` argument. Additional specificiations, `...`, can be made for
+the internal use of the `fishScore()` function, i.e. `maxIter` and `precision`
+can be defined. The central features of the function are described in the 
+following.
+
+```{r, echo = TRUE, eval = FALSE}
+logMod <- function(formula, data = list(), ...) {
+  ...
+```
+
+Within the `logMod()` function control structures are defined, that should
+guarantee that the dependent variable of the model is a binary variable with
+entries of 0s and 1s.
+
+```{r, echo = TRUE, eval = FALSE}
+  # Make sure that the response variable only contains entries of 0s and 1s
+  if (!(0 %in% y && 1 %in% y)) {
+    y <- factor(y, labels = c(0, 1))
+  }
+
+  # Make sure that the dependent variable is binary, otherwise print an error
+  # message
+  if (length(unique(y)) != 2) {
+    stop("Response variable has to be binary.")
+  }
+```
+
+As mentioned, the `logMod()` function makes use of the `fishScore()` function to 
+estimate the model coefficient among others. The output of `logMod()` is a list
+of statistics of class `logMod`. This class assignment is conducted in order to 
+make use of the S3 system of `R`. 
+
+
+```{r, echo = TRUE, eval = FALSE}
+# Storage of fisherScore() results
+result <- fishScore(x, y, ...)
+
+# Definition of class logMod
+class(result) <- "logMod"
+return(result)
+}
+```
+
+On the basis of the class `logMod` a print, a summary and a plot method are 
+implemented. The output of `print.logMod` and `summary.logMod` mimics the 
+respective outputs of the `glm()` function of the `stats` package, 
+while the `plot.logMod` function was inspired by the `plot.lm` of the `graphics` 
+package of `R` [@Rcore2013].
+
+
+## 4. Example: Survival Probability on the Titanic
+
+The utility of the package `logReg` is demonstrated with the popular Titanic
+data set (source, last access 01.04.2019: https://github.com/paulhendricks/titanic). 
+The data set 
+contains passenger survival data along with information on the class and the
+gender of each passenger. There are 891 passengers. For this data a logistic
+regression model can be fitted with the help of the `logMod()` function. 
+
+### 4.1 Using the logMod() function
+
+The output of the function gives a quick overview over the model coefficients,
+the degrees of freedom of the Null model and the estimated model. Additionally,
+there are information available on the Null and Residual Deviance as well as 
+on the Akaike Information Criterion (AIC). To get the odds ratios one has to
+take the exponential of the model coefficients.
+
+```{r, echo = TRUE}
+library(logReg)
+fit <- logMod(Survived ~ Pclass + Sex, data = titanicData)
+fit
+```
+
+
+A more detailed output of the estimation is obtained with the `summary()` 
+function. In addition to the print output, it shows the quantiles of the 
+Deviance Residuals, informs about 
+the standard error, the z-value and the p-value of the model coefficients and
+displays the number of iterations that was needed by the Fisher scoring
+algorithm to reach convergence. 
+
+```{r, echo = TRUE}
+summary(fit)
+```
+
+
+A visualization of the results can be done with the `plot()` function.
+The plot function shows four plots. The first one is a classification matrix,
+which indicates how many observations were correctly classified. The
+classification is done by labelling all observations, which have a predicted
+probability greater than 0.5 as 1 and 0 otherwise. Those observations for which
+the classification is correct relative to the true value of the binary
+dependent variable are summed up on the main diagonal of the classification 
+matrix. The remaining graphs are from the `plot.lm()` function and should be
+interpreted with caution in a logistic regression context. 
+The second graph, compares the predicted values with the residuals
+of the models. This graph can be used to detect heteroscedasticity. Furthermore,
+the third graph can be consulted to check the normality assumptions of the
+residuals. The fourth graph, the "scaled location" graph, is another
+possibility to check whether the homoscedasticity assumption holds.
+
+
+
+```{r, echo = TRUE}
+plot(fit)
+```
+
+
+
+
+### 4.2 Comparing logMod() with glm()
+
+The `glm()` function of the `stats` package is the standard tool in `R` to 
+analyze generalized linear models [@Rcore2013]. I compare the results obtained 
+with the 
+`logMod()` function of the `logReg` package in the following. A difference of 
+`glm()` to `logMod()` is already apparent: one has to specify on which 
+distribution the model is based on with the `family` argument. Hence, the
+`glm()` function can be applied in more contexts.
+
+```{r, echo = TRUE}
+glmFit <- glm(Survived ~ Pclass + Sex, data = titanicData, family = binomial)
+glmFit
+```
+
+If one compares the outputs of the `print.logMod()` and the `print.glm` function
+with one another, one sees that they are almost identical. The outputs only
+differ in the number of digits allowed in the presentation of the results.
+ 
+```{r, echo = TRUE}
+summary(glmFit)
+```
+
+Apparently, the same is true for the `summary()` functions of the `logMod()` and `glm()`.
+
+```{r}
+plot(glmFit)
+```
+
+The output of the `plot()` function are also quiete similiar. The only 
+difference
+is the integration of a classification matrix instead of a Cook's distance
+plot for `logMod()`.
+
+## 5. Discussing results of R CMD check
+
+The `R CMD check` of the `devtools` package results in zero errors, 
+one warning and one note. The warning and the note are briefly discussed
+in the following.
+
+### 5.1 S3 generic/method consistency 
+
+> checking S3 generic/method consistency ... WARNING
+  summary:
+    function(object, ...)
+  summary.logMod:
+    function(x, ...)
+    
+>  See section 'Generic functions and methods' in the 'Writing R
+  Extensions' manual.
+
+This warning should not appear as `summary.logMod()` uses the same arguments 
+and in exactly the same sequence as the `summary()` function. But the problem 
+might be 
+due to a "mismatch" between the arguments in `logMod()` and the other 
+methods defined. The missing integration of the `UseMethod` function in my 
+definition of `logMod()`could be significant for the emergence of the warning.
+
+
+### 5.2 Global function definition is missing
+
+> checking R code for possible problems ... NOTE
+> logMod: no visible global function definition for 'model.frame'
+  logMod: no visible global function definition for 'model.matrix'
+  ...
+
+This note might be a results of insufficient specification of required
+imports in the `DESCRIPTION` file, eventhough the `graphics` and the `stats`
+package are stated as `imports`.
+
+
+
+## 6. Conclusion
+
+The paper has presented the `R` package `logReg`. Its core function, `logMod()`,
+can be used to implement logistic regression anlysis and is an alternative to 
+the standard `glm()` function of the `stats` package. Further on, the
+the package allows to run the Fisher scoring algorithm with the `fishScore()` 
+function seperatly. The applications of 
+logistic regression analysis are huge regarding the number of 
+real world problems that can be reduced to a binary choice problem. 
+Therefore, improved software solutions for performing binary choice
+analysis will most certainly come.
+
+
+\pagebreak
+
+## Bibliography
+
+
+
+
